@@ -1,13 +1,13 @@
 import React, { ChangeEvent, FormEvent, useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import { Map, TileLayer, Marker } from 'react-leaflet';
 import logo from '../../assets/logo.svg';
 import api from '../../services/api';
 import { LeafletMouseEvent } from 'leaflet';
+import Dropzone from '../../components/DropZone';
 
 import './styles.css';
-
 interface Item {
     id: number;
     title: string;
@@ -28,7 +28,11 @@ const CreateLocation: React.FC = () => {
         uf: '',
     });
 
-    const [selectedItems, setSelectedItems] = useState<number[]>([]);
+    const history = useHistory();
+
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
+
+    const [selectedFile, setSelectedFile] = useState<File>();
 
     useEffect(() => {
         api.get('items').then(response => {
@@ -63,18 +67,24 @@ const CreateLocation: React.FC = () => {
         const [latitude, longitude] = selectedMapPosition;
         const items = selectedItems;
 
-        const data = {
-            city,
-            email,
-            name,
-            uf,
-            whatsapp,
-            latitude,
-            longitude,
-            items
-        }
+        const data = new FormData();
 
-        await api.post('locations', data)
+        data.append('city', city);
+        data.append('email', email);
+        data.append('name', name);
+        data.append('uf', uf);
+        data.append('whatsapp', whatsapp);
+        data.append('latitude', String(latitude));
+        data.append('longitude', String(longitude));
+        data.append('items', items.join(','));
+
+        if(selectedFile)
+            data.append('image', selectedFile);
+
+        await api.post('locations', data);
+        alert('Estabelecimento cadastrado com sucesso!');
+
+        history.push('/');
 
     }, [formData, selectedMapPosition, selectedItems])
 
@@ -97,6 +107,9 @@ const CreateLocation: React.FC = () => {
                         <legend>
                             <h2>Dados</h2>
                         </legend>
+
+                        <Dropzone onFileUploaded={setSelectedFile} />
+
                         <div className="field">
                             <label htmlFor="name">Nome da Entidade</label>
                             <input
